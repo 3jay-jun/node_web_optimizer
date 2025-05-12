@@ -9,7 +9,7 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
      * true = 대상 경로(PROJECT_PATH)의 폴더 구조와 동일한 경로로 PATH 경로에 복사
      * false = 경량화 작업본 확인 용도
      * */
-    IS_TEST: true,
+    IS_TEST: false,
 
     /** 작업 중 로그 출력 여부 */
     IS_LOG: true,
@@ -26,9 +26,9 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
 
     /** 최적화 예외 처리 */
     OPTIMIZATION_EXCLUDE: {
-        "script" : ['js/controller', 'ezController', 'ezFile', 'ezValidation'],
-        "image" : ['fullcalendar'],
-        "css" : [],
+        "script" : ['controller', 'ezController', 'ezFile', 'ezValidation', 'common\\js\\common.js', 'common\\js\\site.js'],
+        "image" : ['fullcalendar', 'newsletter'],
+        "css": ['']
     },
 
     /** 이미지 퀄리티 설정 */
@@ -54,6 +54,7 @@ findFilesByExtensions().then(async (findFiles) => {
             logger.info(key + " 파일" + findFiles[key].length.toLocaleString() + "개 발견")
         })
         logger.info('////////////////////////////////////////')
+
 
         // JavaScript 파일 최적화
         if (findFiles.script && findFiles.script.length > 0) {
