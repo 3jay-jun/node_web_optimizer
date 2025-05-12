@@ -26,7 +26,7 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
 
     /** 최적화 예외 처리 */
     OPTIMIZATION_EXCLUDE: {
-        "script" : ['controller', 'ezController', 'ezFile', 'ezValidation', 'common\\js\\common.js', 'common\\js\\site.js'],
+        "script" : ['controller', 'ezController', 'ezFile', 'ezValidation', 'common\\js\\main.js', 'common\\js\\common.js', 'common\\js\\site.js'],
         "image" : ['fullcalendar', 'newsletter'],
         "css": ['']
     },
@@ -34,6 +34,8 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
     /** 이미지 퀄리티 설정 */
     IMAGE_QUALITY: 80,
     IMAGE_EXTENSIONS: '.webp',
+
+    /** 작업물 출력 */
     PATH: './.output/',      // 결과물 출력 경로
     PREPEND: '',      // 파일 앞에 붙이고 싶은 TEXT
 
@@ -84,7 +86,6 @@ findFilesByExtensions().then(async (findFiles) => {
             }
             await processBatch(findFiles.markup, replaceExtensions, new Indicator(findFiles.markup.length, "HTML/JSP/CSS/SCSS"));
         }
-
 
     } catch (e) {
         console.error(e)
