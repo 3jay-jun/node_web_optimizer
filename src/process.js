@@ -139,7 +139,10 @@ export function process(options) {
 
             const ext = path.extname(file).toLowerCase();
             const outputFilePath = generateOutputPath(file.replace(ext, OUTPUT_OPTION.IMAGE_EXTENSIONS), 'img');
-            await Sharp(file).webp({quality: OUTPUT_OPTION.IMAGE_QUALITY}).toFile(outputFilePath);
+            await Sharp(file)
+                .withMetadata()
+                .webp({quality: OUTPUT_OPTION.IMAGE_QUALITY})
+                .toFile(outputFilePath);
             CONVERT_IMAGE.push(outputFilePath);
             logger.info(`${file} -> ${outputFilePath} 변환 완료`);
         } catch (error) {
@@ -177,14 +180,14 @@ export function process(options) {
     async function otherFile(file) {
         if (OUTPUT_OPTION.IS_TEST) return;
         try {
-            const other = await fs.readFile(file, 'utf8');
             const outputPath = generateOutputPath(file);
-            await fs.writeFile(outputPath, other);
+            await fs.copyFile(file, outputPath);
             logger.info(`File Copy 완료 : ${outputPath}`);
         } catch (e) {
-            logger.error(e);
+            logger.error(`파일 복사 실패 (${file} -> ${outputPath}): ${e.message}`);
         }
     }
+
 
 
     /**
