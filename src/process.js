@@ -64,14 +64,16 @@ export function process(options) {
                     await recurse(filePath);
                 } else {
                     const ext = path.extname(file).toLowerCase();
+                    let matched = false;
                     Object.keys(extenstionFiles).forEach((key) => {
                         if (extenstionFiles[key].includes(ext)) {
-                            if (!foundFiles[key]) foundFiles[key] = [];
                             foundFiles[key].push(filePath);
-                        } else {
-                            foundFiles["other"].push(filePath);
+                            matched = true;
                         }
                     });
+                    if (!matched) {
+                        foundFiles["other"].push(filePath);
+                    }
                 }
             }
         }

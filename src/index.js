@@ -26,7 +26,7 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
 
     /** 최적화 예외 처리 */
     OPTIMIZATION_EXCLUDE: {
-        "script" : ['js' + path.sep + 'controller'],
+        "script" : ['js/controller', 'ezController', 'ezFile', 'ezValidation'],
         "image" : ['fullcalendar'],
         "css" : [],
     },
