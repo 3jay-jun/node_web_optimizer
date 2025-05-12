@@ -1,4 +1,5 @@
-import fs from "fs";
+import { promises as fs } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import path from "path";
 import UglifyJS from 'uglify-js';
 import Sharp from 'sharp';
@@ -50,38 +51,61 @@ export function process(options) {
      * 확장자 기반으로 최적화 파일 찾기
      * */
     async function findFilesByExtensions() {
-        const extenstionFiles = _.merge({"markup": [".html", ".jsp"]}, OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS);
+        // 확장자 목록 병합 (기본값과 사용자 정의 옵션)
+        const extensionFiles = _.merge({"markup": [".html", ".jsp"]}, OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS);
 
-        const foundFiles = {}
-        Object.keys(extenstionFiles).forEach((key) => foundFiles[key] = [])
-        foundFiles.other = [];
+        const foundFiles = {};
+        // foundFiles 객체 초기화 (각 확장자 키에 대해 빈 배열 할당)
+        Object.keys(extensionFiles).forEach((key) => foundFiles[key] = []);
+        foundFiles.other = []; // 기타 파일들을 위한 배열
+
         async function recurse(currentPath) {
-            const files = fs.readdirSync(currentPath);
-            for (const file of files) {
-                const filePath = path.join(currentPath, file);
-                const stats = fs.statSync(filePath);
-                if (stats.isDirectory()) {
-                    await recurse(filePath);
-                } else {
-                    const ext = path.extname(file).toLowerCase();
-                    let matched = false;
-                    Object.keys(extenstionFiles).forEach((key) => {
-                        if (extenstionFiles[key].includes(ext)) {
-                            foundFiles[key].push(filePath);
-                            matched = true;
+            try {
+                const entries = await fs.readdir(currentPath, { withFileTypes: true });
+                for (const entry of entries) {
+                    const filePath = path.join(currentPath, entry.name);
+                    if (entry.isDirectory()) {
+                        await recurse(filePath); // 재귀 호출
+                    } else if (entry.isFile()) { // 파일인 경우에만 처리
+                        const ext = path.extname(entry.name).toLowerCase();
+                        let matchedCategory = false; // 파일이 특정 카테고리에 매칭되었는지 여부
+
+                        // 정의된 확장자 카테고리들을 순회
+                        for (const key of Object.keys(extensionFiles)) {
+                            if (extensionFiles[key].includes(ext)) {
+                                // 제외 조건 확인 및 continue
+                                if (OUTPUT_OPTION.OPTIMIZATION_EXCLUDE &&
+                                    OUTPUT_OPTION.OPTIMIZATION_EXCLUDE[key] &&
+                                    OUTPUT_OPTION.OPTIMIZATION_EXCLUDE[key].some((e) => "" !== e && filePath.includes(e)))
+                                {
+                                    continue;
+                                }
+
+                                foundFiles[key].push(filePath);
+                                matchedCategory = true;
+                                break;
+                            }
                         }
-                    });
-                    if (!matched) {
-                        foundFiles["other"].push(filePath);
+
+                        if (!matchedCategory) {
+                            foundFiles.other.push(filePath);
+                        }
                     }
                 }
+            } catch (error) {
+                console.error(`Error processing path ${currentPath}: ${error.message}`);
             }
         }
 
-        await recurse(OUTPUT_OPTION.PROJECT_PATH);
+        // 지정된 프로젝트 경로에서부터 재귀 탐색 시작
+        if (OUTPUT_OPTION && OUTPUT_OPTION.PROJECT_PATH) {
+            await recurse(OUTPUT_OPTION.PROJECT_PATH);
+        } else {
+            console.error("PROJECT_PATH is not defined in OUTPUT_OPTION.");
+            return foundFiles; // 혹은 throw new Error("Project path not configured");
+        }
         return foundFiles;
     }
-
 
     /**
      * javascript 경량화
@@ -89,9 +113,8 @@ export function process(options) {
     async function jsMinify(file, indicateFunc) {
         try {
             if (!OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS["script"].some((e) => e === path.extname(file).toLowerCase())) return;
-            if (OUTPUT_OPTION.OPTIMIZATION_EXCLUDE["script"].some((e) => file.includes(e))) return;
 
-            const code = fs.readFileSync(file, 'utf8');
+            const code = await fs.readFile(file, 'utf8');
             const result = await UglifyJS.minify(code, {compress: {drop_console: true}, mangle: true});
             if (result.error) {
                 console.error(result.error);
@@ -99,7 +122,7 @@ export function process(options) {
             }
 
             const outputPath = generateOutputPath(file, 'js');
-            await fs.writeFileSync(outputPath, result.code);
+            await fs.writeFile(outputPath, result.code);
             logger.info(`${file} -> ${outputPath} 변환 완료`);
         } catch (e) {
             console.error(e);
@@ -113,7 +136,6 @@ export function process(options) {
     async function imgMinify(file) {
         try {
             if (!OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS["image"].some((e) => e === path.extname(file).toLowerCase())) return;
-            if (OUTPUT_OPTION.OPTIMIZATION_EXCLUDE["image"].some((e) => file.includes(e))) return;
 
             const ext = path.extname(file).toLowerCase();
             const outputFilePath = generateOutputPath(file.replace(ext, OUTPUT_OPTION.IMAGE_EXTENSIONS), 'img');
@@ -132,9 +154,8 @@ export function process(options) {
     async function cssMinify(file) {
         try {
             if (!OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS["css"].some((e) => e === path.extname(file).toLowerCase())) return;
-            if (OUTPUT_OPTION.OPTIMIZATION_EXCLUDE["css"].some((e) => file.includes(e))) return;
 
-            const css = fs.readFileSync(file, 'utf8');
+            const css = await fs.readFile(file, 'utf8');
             const outputFilePath = generateOutputPath(file, 'css');
             const result = await postcss([cssnano({preset: 'default'})]).process(css, {
                 from: file,
@@ -142,7 +163,7 @@ export function process(options) {
                 parser: postcssScss
             });
             CONVERTED_CSS.push(outputFilePath);
-            await fs.writeFileSync(outputFilePath, result.css);
+            await fs.writeFile(outputFilePath, result.css);
             logger.info(`CSS 파일 처리 완료: ${outputFilePath}`);
         } catch (error) {
             logger.error(`CSS 파일 처리 완료: ${error.message}`);
@@ -156,9 +177,9 @@ export function process(options) {
     async function otherFile(file) {
         if (OUTPUT_OPTION.IS_TEST) return;
         try {
-            const other = fs.readFileSync(file, 'utf8');
+            const other = await fs.readFile(file, 'utf8');
             const outputPath = generateOutputPath(file);
-            await fs.writeFileSync(outputPath, other);
+            await fs.writeFile(outputPath, other);
             logger.info(`File Copy 완료 : ${outputPath}`);
         } catch (e) {
             logger.error(e);
@@ -182,7 +203,7 @@ export function process(options) {
     async function replaceExtensions(file) {
         if (OUTPUT_OPTION.IS_TEST) return;
         try {
-            let content = fs.readFileSync(file, 'utf8');
+            let content = await fs.readFile(file, 'utf8');
             const regex = /<img[^>]?src=['"]([^'"]*(\.[a-zA-Z0-9]+))['"].*?>/g;
             const cssRegex = /url\(['"]?([^'"]*(\.[a-zA-Z0-9]+))['"]?\)/g;
             const ext = path.extname(file).toLowerCase();
@@ -196,7 +217,7 @@ export function process(options) {
             });
 
             const outputPath = generateOutputPath(file);
-            fs.writeFileSync(outputPath, content, "utf-8");
+            await fs.writeFile(outputPath, content, "utf-8");
             logger.info(`${outputPath} 파일의 이미지 확장자 치환 완료`);
         } catch (err) {
             logger.error(`파일 처리 실패: ${err.message}`);
@@ -226,8 +247,8 @@ export function process(options) {
         const directory = path.dirname(filePath); // 폴더 경로 추출
 
         // 폴더가 존재하지 않으면 생성
-        if (!fs.existsSync(directory)) {
-            fs.mkdirSync(directory, { recursive: true }); // recursive: 하위 폴더까지 생성
+        if (!existsSync(directory)) {
+            mkdirSync(directory, { recursive: true }); // recursive: 하위 폴더까지 생성
         }
 
         return filePath;
