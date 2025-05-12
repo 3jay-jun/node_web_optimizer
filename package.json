@@ -1,0 +1,21 @@
+{
+  "name": "node_web_optimizer",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index"
+  },
+  "dependencies": {
+    "@fullhuman/postcss-purgecss": "^7.0.2",
+    "cssnano": "^7.0.6",
+    "lodash": "^4.17.21",
+    "postcss": "^8.5.3",
+    "postcss-cli": "^11.0.1",
+    "postcss-purgecss": "^5.0.0",
+    "sharp": "^0.33.5",
+    "uglify-js": "^3.19.3"
+  },
+  "devDependencies": {
+    "postcss-scss": "^4.0.9"
+  }
+}
