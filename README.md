@@ -2,7 +2,7 @@
 Node기반 프로젝트로 특정 경로 하위에 리소스를 찾고 최적화(이미지, JS , CSS Minify) 및 HTML, CSS 내 이미지 경로를 수정하는 프로젝트입니다.<br>
 | Key | Type | default | description
 | --- | --- | --- | --- |
-| IS_TEST | Boolean | false | true - 최적화 작업물 확인용 프로젝트 경로에 영향도 없음 <br> false - 프로젝트 하위 디렉터리를 전부 PATH 경로에 복사 |
+| IS_TEST | Boolean | true | true - 최적화 작업물 확인용 프로젝트 경로에 영향도 없음<br> (PATH 경로에 작업물 별 디렉터리로 출력) <br> false - 프로젝트 하위 디렉터리를 전부 PATH 경로에 복사 |
 | IS_LOG | Boolean | true | 콘솔창 작업 로그 출력 여부 |
 | PROJECT_PATH | String |  | 최적화 대상 프로젝트 |
 | OPTIMIZATION_EXTENSIONS | Object |  | 최적화 확장자 지정 {script: [], image: [], css: []} 타입에 맞게 지정 |

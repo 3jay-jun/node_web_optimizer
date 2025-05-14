@@ -16,10 +16,10 @@ export function process(options) {
     const OUTPUT_OPTION = _.merge({
         /**
          * IS_TEST
-         * true = 대상 경로(PROJECT_PATH)의 폴더 구조와 동일한 경로로 PATH 경로에 복사
-         * false = 경량화 작업본 확인 용도
+         * true = 경량화 작업본 확인 용도
+         * false = 대상 경로(PROJECT_PATH)의 폴더 구조와 동일한 경로로 PATH 경로에 복사
          * */
-        IS_TEST: false,
+        IS_TEST: true,
         /** 작업 중 로그 출력 여부 */
         IS_LOG: true,
 
@@ -139,10 +139,26 @@ export function process(options) {
 
             const ext = path.extname(file).toLowerCase();
             const outputFilePath = generateOutputPath(file.replace(ext, OUTPUT_OPTION.IMAGE_EXTENSIONS), 'img');
-            await Sharp(file)
-                .withMetadata()
-                .webp({quality: OUTPUT_OPTION.IMAGE_QUALITY})
+            const image = Sharp(file).withMetadata();
+
+            // 이미지 크기 확인
+            const metadata = await image.metadata();
+            const MAX_SIZE = 16383;
+
+            if (metadata.width > MAX_SIZE || metadata.height > MAX_SIZE) {
+                const resizeWidth = Math.min(metadata.width || MAX_SIZE, MAX_SIZE);
+                const resizeHeight = Math.min(metadata.height || MAX_SIZE, MAX_SIZE);
+
+                image.resize({
+                    width: resizeWidth,
+                    height: resizeHeight,
+                    fit: 'inside' // 비율 유지
+                });
+            }
+            await image
+                .webp({ quality: OUTPUT_OPTION.IMAGE_QUALITY })
                 .toFile(outputFilePath);
+
             CONVERT_IMAGE.push(outputFilePath);
             logger.info(`${file} -> ${outputFilePath} 변환 완료`);
         } catch (error) {
@@ -233,7 +249,7 @@ export function process(options) {
      *
      * 작동 방식:
      * - OUTPUT_OPTION.IS_TEST 값에 따라 동작이 달라진다:
-     *   1. 테스트 모드(OUTPUT_OPTION.IS_TEST= false)인 경우:
+     *   1. 테스트 모드(false)인 경우:
      *      - 대상 경로(PROJECT_PATH)를 OUTPUT_OPTION.PATH로 교체하여 출력
      *   2. 테스트 모드가 아닌 경우(true):
      *      - 원본 파일명만 가져온 뒤(경로 제외) OUTPUT_OPTION.PATH, prefixDir, OUTPUT_OPTION.PREPEND를 조합하여 새로운 경로를 만든다.
