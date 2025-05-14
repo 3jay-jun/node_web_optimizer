@@ -123,7 +123,7 @@ export function process(options) {
 
             const outputPath = generateOutputPath(file, 'js');
             await fs.writeFile(outputPath, result.code);
-            logger.info(`${file} -> ${outputPath} 변환 완료`);
+            logger.info(`JavaScript Minify Complete: ${outputPath}`);
         } catch (e) {
             console.error(e);
         }
@@ -160,9 +160,9 @@ export function process(options) {
                 .toFile(outputFilePath);
 
             CONVERT_IMAGE.push(outputFilePath);
-            logger.info(`${file} -> ${outputFilePath} 변환 완료`);
+            logger.info(`${file} -> ${outputFilePath} Conversion Complete.`);
         } catch (error) {
-            logger.error(`${file} 변환 실패: ${error.message}`);
+            logger.error(`${file} Convert Failed ${error.message}`);
         }
     }
 
@@ -183,9 +183,9 @@ export function process(options) {
             });
             CONVERTED_CSS.push(outputFilePath);
             await fs.writeFile(outputFilePath, result.css);
-            logger.info(`CSS 파일 처리 완료: ${outputFilePath}`);
+            logger.info(`CSS Minify Complete: ${outputFilePath}`);
         } catch (error) {
-            logger.error(`CSS 파일 처리 완료: ${error.message}`);
+            logger.error(`CSS Minify Failed (${file}): ${error.message}`);
         }
     }
 
@@ -198,9 +198,9 @@ export function process(options) {
         try {
             const outputPath = generateOutputPath(file);
             await fs.copyFile(file, outputPath);
-            logger.info(`File Copy 완료 : ${outputPath}`);
+            logger.info(`File Copy Complete: ${outputPath}`);
         } catch (e) {
-            logger.error(`파일 복사 실패 (${file} -> ${outputPath}): ${e.message}`);
+            logger.error(`File Copy Failed (${file}): ${e.message}`);
         }
     }
 
@@ -237,9 +237,9 @@ export function process(options) {
 
             const outputPath = generateOutputPath(file);
             await fs.writeFile(outputPath, content, "utf-8");
-            logger.info(`${outputPath} 파일의 이미지 확장자 치환 완료`);
+            logger.info(`${outputPath} : Changing Extension Complete`);
         } catch (err) {
-            logger.error(`파일 처리 실패: ${err.message}`);
+            logger.error(`Changing Extension Failed: ${err.message}`);
         }
     }
 

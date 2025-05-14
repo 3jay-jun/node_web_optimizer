@@ -18,8 +18,8 @@ export default class Indicator {
         this.print()
     }
     print() {
-        process.stdout.write(`\r ${this.namespace} 파일 - ${this.completedCnt.toLocaleString()}/${this.total.toLocaleString()} 완료`);
-        if(this.completedCnt === this.total) console.log(`\r ${this.namespace} 파일 총 ${this.total.toLocaleString()}개 중 ${this.completedCnt.toLocaleString()} 작업 완료`)
+        process.stdout.write(`\r ${this.namespace} FILE - ${this.completedCnt.toLocaleString()} / ${this.total.toLocaleString()} `);
+        if(this.completedCnt === this.total) console.log(`\r ${this.namespace} FILE - ${this.total.toLocaleString()} / ${this.completedCnt.toLocaleString()} Complete.`)
     }
 
 }

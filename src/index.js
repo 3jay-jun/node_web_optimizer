@@ -27,7 +27,7 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
     /** 최적화 예외 처리 */
     OPTIMIZATION_EXCLUDE: {
         "script" : ['controller', 'ezController', 'ezFile', 'ezValidation', 'common\\js\\main.js', 'common\\js\\common.js', 'common\\js\\site.js'],
-        "image" : ['fullcalendar', 'newsletter'],
+        "image" : ['\\common\\newsletter'],
         "css": ['']
     },
 
@@ -45,15 +45,13 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
 })
 
 
-
-// 찾은 파일
 findFilesByExtensions().then(async (findFiles) => {
     const logger = new Logger(true);
     try {
         const findTotal = Object.values(findFiles).reduce((prev, next) => prev + next.length, 0);
         logger.info('////////////////////////////////////////')
         Object.keys(findFiles).forEach((key) => {
-            logger.info(key + " 파일" + findFiles[key].length.toLocaleString() + "개 발견")
+            logger.info(key + " - Total " + findFiles[key].length + "")
         })
         logger.info('////////////////////////////////////////')
 
@@ -81,7 +79,6 @@ findFilesByExtensions().then(async (findFiles) => {
         // HTML/JSP/CSS/SCSS 파일 확장자 치환
         if (findFiles.markup && findFiles.markup.length > 0) {
             if (CONVERTED_CSS && CONVERTED_CSS.length) {
-                console.log(CONVERTED_CSS)
                 findFiles.markup = [...findFiles.markup, ...CONVERTED_CSS];
             }
             await processBatch(findFiles.markup, replaceExtensions, new Indicator(findFiles.markup.length, "HTML/JSP/CSS/SCSS"));
