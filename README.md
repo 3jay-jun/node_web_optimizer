@@ -21,7 +21,7 @@ Node기반 프로젝트로 특정 경로 하위에 리소스를 찾고 최적화
 
 #### 1. 해당 프로젝트를 복제 및 패키지 설치
 ```
-$ git clone https://github.com/3jay-jun/node_web_optimize.git
+$ git clone https://github.com/3jay-jun/node_web_optimizer.git
 $ cd node_web_optimizer
 $ npm install
 ```
