@@ -115,7 +115,7 @@ export function process(options) {
             if (!OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS["script"].some((e) => e === path.extname(file).toLowerCase())) return;
 
             const code = await fs.readFile(file, 'utf8');
-            const result = await UglifyJS.minify(code, {compress: {drop_console: true}, mangle: true});
+            const result = UglifyJS.minify(code, {compress: {drop_console: true}, mangle: true});
             if (result.error) {
                 console.error(result.error);
                 return;
@@ -286,8 +286,8 @@ export function process(options) {
     async function processBatch(files, processFunction, indicateFunc) {
         for (let i = 0; i < files.length; i += OUTPUT_OPTION.BATCH_SIZE) {
             const batch = files.slice(i, i + OUTPUT_OPTION.BATCH_SIZE);
-            await Promise.allSettled(batch.map(file => {
-                processFunction(file);
+            await Promise.allSettled(batch.map( async (file) => {
+                await processFunction(file);
                 indicateFunc.update()
             }));
         }
