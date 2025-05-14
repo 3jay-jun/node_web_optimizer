@@ -57,9 +57,9 @@ $ npm run start
 <br>
 
 ## Library
-- [sharp - 0.33.5](#https://sharp.pixelplumbing.com/)
-- [CSSnano - 7.0.6](#https://github.com/cssnano/cssnano)
-- [UglifyJS - 3.19.3](#https://github.com/mishoo/UglifyJS)
+- [sharp - 0.33.5](https://sharp.pixelplumbing.com/)
+- [CSSnano - 7.0.6](https://github.com/cssnano/cssnano)
+- [UglifyJS - 3.19.3](https://github.com/mishoo/UglifyJS)
 
 >[ 작업 환경 ] <br> Windows 11 Pro<br> Node - v22.14.0  <br> Npm - 11.3.0
 
