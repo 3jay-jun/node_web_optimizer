@@ -12,6 +12,7 @@ Node기반 프로젝트로 특정 경로 하위에 리소스를 찾고 최적화
 | PATH | String | ./.output/ | 작업물 출력 경로 |
 | PREPEND | String |  | 변환 파일에 앞에 붙일 문자열 (IS_TEST = true 일 경우만 작동) |
 | BATCH_SIZE | Number | 100 | 최적화 작업 크기 |
+| CSS_MERGE_NAME | String | merged.min | 머지된 css 파일명  |
 
 <br>   
 
