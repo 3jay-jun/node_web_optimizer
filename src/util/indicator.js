@@ -13,8 +13,9 @@ export default class Indicator {
         this.total = newTotal;
     }
 
-    update() {
-        ++this.completedCnt
+    update(num) {
+        if (num)    this.completedCnt = num;
+        else        ++this.completedCnt;
         this.print()
     }
     print() {

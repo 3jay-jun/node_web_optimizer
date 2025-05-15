@@ -3,7 +3,8 @@ import Indicator from './util/indicator.js';
 import { process, CONVERTED_CSS } from './process.js';
 import Logger from "./util/logger.js";
 
-const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replaceExtensions, processBatch } = process({
+const PROJECT_PATH = 'C:\\Users\\Desktop\\test';
+const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replaceExtensions, processBatch, mergeAndMinifyCss } = process({
     /**
      * IS_TEST
      * true = 대상 경로(PROJECT_PATH)의 폴더 구조와 동일한 경로로 PATH 경로에 복사
@@ -15,7 +16,7 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
     IS_LOG: true,
 
     /** 최적화 작업 경로  */
-    PROJECT_PATH : 'C:\\Users\\Desktop\\test', // 탐색을 시작할 경로
+    PROJECT_PATH : PROJECT_PATH, // 탐색을 시작할 경로
 
     /** 최적화 확장자  */
     OPTIMIZATION_EXTENSIONS : {
@@ -28,7 +29,7 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
     OPTIMIZATION_EXCLUDE: {
         "script" : ['controller', 'ezController', 'ezFile', 'ezValidation', 'common\\js\\main.js', 'common\\js\\common.js', 'common\\js\\site.js'],
         "image" : ['\\common\\newsletter'],
-        "css": ['']
+        "css": ['merged.min.css']
     },
 
     /** 이미지 퀄리티 설정 */
@@ -36,12 +37,15 @@ const {findFilesByExtensions, jsMinify, imgMinify, cssMinify, otherFile, replace
     IMAGE_EXTENSIONS: '.webp',
 
     /** 작업물 출력 */
-    PATH: './.output/',      // 결과물 출력 경로
+    PATH: PROJECT_PATH,      // 결과물 출력 경로
     PREPEND: '',      // 파일 앞에 붙이고 싶은 TEXT
 
 
     /** System Options*/
     BATCH_SIZE: 100, // 배치 크기 설정
+
+    /** Css Merge */
+    CSS_MERGE_NAME: 'merged.min',
 })
 
 
@@ -58,22 +62,25 @@ findFilesByExtensions().then(async (findFiles) => {
 
         // JavaScript 파일 최적화
         if (findFiles.script && findFiles.script.length > 0) {
-            await processBatch(findFiles.script, jsMinify, new Indicator(findFiles.script.length, "script"));
+            await processBatch(findFiles.script, jsMinify, new Indicator(findFiles.script.length, "Script"));
         }
 
         // CSS 파일 최적화
         if (findFiles.css && findFiles.css.length > 0) {
-            await processBatch(findFiles.css, cssMinify, new Indicator(findFiles.css.length, "css"));
+            // await processBatch(findFiles.css, cssMinify, new Indicator(findFiles.css.length, "Css"));
+
+            await mergeAndMinifyCss(findFiles.css)
+            new Indicator(findFiles.css.length, "CSS Merge And Minify").update(findFiles.css.length)
         }
 
         // 이미지 파일 최적화
         if (findFiles.image && findFiles.image.length > 0) {
-            await processBatch(findFiles.image, imgMinify, new Indicator(findFiles.image.length, "이미지"));
+            await processBatch(findFiles.image, imgMinify, new Indicator(findFiles.image.length, "Image"));
         }
 
         // 기타 파일 복사
         if (findFiles.other && findFiles.other.length > 0) {
-            await processBatch(findFiles.other, otherFile, new Indicator(findFiles.other.length, "기타"));
+            await processBatch(findFiles.other, otherFile, new Indicator(findFiles.other.length, "Other"));
         }
 
         // HTML/JSP/CSS/SCSS 파일 확장자 치환

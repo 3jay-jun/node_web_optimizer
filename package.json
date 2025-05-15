@@ -11,7 +11,10 @@
     "lodash": "^4.17.21",
     "postcss": "^8.5.3",
     "postcss-cli": "^11.0.1",
+    "postcss-import": "^16.1.0",
+    "postcss-nested": "^7.0.2",
     "postcss-purgecss": "^5.0.0",
+    "postcss-simple-vars": "^7.0.1",
     "sharp": "^0.33.5",
     "uglify-js": "^3.19.3"
   },

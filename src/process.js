@@ -4,10 +4,12 @@ import path from "path";
 import UglifyJS from 'uglify-js';
 import Sharp from 'sharp';
 import postcss from 'postcss';
+import postcssNested from 'postcss-nested';
+import postcssSimpleVars  from 'postcss-simple-vars';
+
 import cssnano from 'cssnano';
 import _ from 'lodash';
 import postcssScss from 'postcss-scss';
-import Log from './util/logger.js';
 import Logger from "./util/logger.js";
 
 export const CONVERTED_CSS = []; ; // CONVERT_CSS 변수 내보내기
@@ -41,6 +43,10 @@ export function process(options) {
 
         /** System Options*/
         BATCH_SIZE: 100, // 배치 크기 설정
+
+        /** Css Merge */
+        CSS_MERGE_NAME: 'merged.min',
+        IS_REPLACE_CSS_MERGE: true
     }, options);
 
     const logger = new Logger(OUTPUT_OPTION.IS_LOG);
@@ -58,6 +64,13 @@ export function process(options) {
         // foundFiles 객체 초기화 (각 확장자 키에 대해 빈 배열 할당)
         Object.keys(extensionFiles).forEach((key) => foundFiles[key] = []);
         foundFiles.other = []; // 기타 파일들을 위한 배열
+
+
+        /** */
+        if (OUTPUT_OPTION.CSS_MERGE_NAME ){
+            if (!OUTPUT_OPTION.OPTIMIZATION_EXCLUDE.css) OUTPUT_OPTION.OPTIMIZATION_EXCLUDE.css = [];
+            OUTPUT_OPTION.OPTIMIZATION_EXCLUDE.css.push(OUTPUT_OPTION.CSS_MERGE_NAME);
+        }
 
         async function recurse(currentPath) {
             try {
@@ -112,8 +125,6 @@ export function process(options) {
      * */
     async function jsMinify(file, indicateFunc) {
         try {
-            if (!OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS["script"].some((e) => e === path.extname(file).toLowerCase())) return;
-
             const code = await fs.readFile(file, 'utf8');
             const result = UglifyJS.minify(code, {compress: {drop_console: true}, mangle: true});
             if (result.error) {
@@ -135,8 +146,6 @@ export function process(options) {
      * */
     async function imgMinify(file) {
         try {
-            if (!OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS["image"].some((e) => e === path.extname(file).toLowerCase())) return;
-
             const ext = path.extname(file).toLowerCase();
             const outputFilePath = generateOutputPath(file.replace(ext, OUTPUT_OPTION.IMAGE_EXTENSIONS), 'img');
             const image = Sharp(file).withMetadata();
@@ -172,8 +181,6 @@ export function process(options) {
      * */
     async function cssMinify(file) {
         try {
-            if (!OUTPUT_OPTION.OPTIMIZATION_EXTENSIONS["css"].some((e) => e === path.extname(file).toLowerCase())) return;
-
             const css = await fs.readFile(file, 'utf8');
             const outputFilePath = generateOutputPath(file, 'css');
             const result = await postcss([cssnano({preset: 'default'})]).process(css, {
@@ -189,14 +196,43 @@ export function process(options) {
         }
     }
 
+    /**
+     * 여러 CSS 파일 병합 및 경량화
+     */
+    async function mergeAndMinifyCss(files) {
+        try {
+            const genPath = generateOutputPath(files[0], 'css');
+            const outputFilePath = path.join(path.dirname(genPath), OUTPUT_OPTION.CSS_MERGE_NAME + ".css")
+
+            const mergedCss = await util.readAndMerge(files);
+
+            const processed = await postcss([postcssSimpleVars, postcssNested])
+                .process(mergedCss, { from: undefined });
+
+            const minified = await postcss([cssnano({ preset: 'default' })])
+                .process(processed.css, {
+                    from: outputFilePath,
+                    to: outputFilePath,
+                    parser: postcssScss,
+                });
+
+            await fs.writeFile(outputFilePath, minified.css);
+            CONVERTED_CSS.push(outputFilePath);
+            logger.info(`CSS Merge and Minify Complete: ${outputFilePath}`);
+        } catch (error) {
+            logger.error(`CSS Processing Failed: ${error.message}, ${outputFilePath}`);
+
+        }
+    }
+
+
 
     /**
      * 전체 파일 복사
      * */
     async function otherFile(file) {
-        if (OUTPUT_OPTION.IS_TEST) return;
         try {
-            const outputPath = generateOutputPath(file);
+            const outputPath = generateOutputPath(file, 'other');
             await fs.copyFile(file, outputPath);
             logger.info(`File Copy Complete: ${outputPath}`);
         } catch (e) {
@@ -220,22 +256,20 @@ export function process(options) {
      * 4. 성공 또는 실패 시 로그를 출력한다.
      */
     async function replaceExtensions(file) {
-        if (OUTPUT_OPTION.IS_TEST) return;
         try {
             let content = await fs.readFile(file, 'utf8');
-            const regex = /<img[^>]?src=['"]([^'"]*(\.[a-zA-Z0-9]+))['"].*?>/g;
-            const cssRegex = /url\(['"]?([^'"]*(\.[a-zA-Z0-9]+))['"]?\)/g;
+            const regex = /<img[^>]?src=(['"]?)([^'"()<>]*(\.[a-zA-Z0-9]+))\1[^>]*>/g;
+            const cssRegex = /url\(['"]?([^'"()]*(\.[a-zA-Z]+))['"]?\)/g;
             const ext = path.extname(file).toLowerCase();
             const fileRegx = [".css", ".scss"].some((e) => e === ext) ? cssRegex : regex;
 
             if (!fileRegx.test(content)) return;
-            content = await content.replace(fileRegx, (match, p1, p2) => {
+            content = content.replace(fileRegx, (match, p1, p2) => {
                 if (/https?/g.test(match)) return match;
                 if (!CONVERT_IMAGE.some((e) => p1.includes(path.basename(e, path.extname(e))))) return match;
                 return match.replace(p2, OUTPUT_OPTION.IMAGE_EXTENSIONS);
             });
-
-            const outputPath = generateOutputPath(file);
+            const outputPath = generateOutputPath(file, 'markup');
             await fs.writeFile(outputPath, content, "utf-8");
             logger.info(`${outputPath} : Changing Extension Complete`);
         } catch (err) {
@@ -259,8 +293,10 @@ export function process(options) {
         if (!OUTPUT_OPTION.IS_TEST) {
             filePath = filePath.replace(OUTPUT_OPTION.PROJECT_PATH, OUTPUT_OPTION.PATH)
         } else {
-            const fileName = filePath.split("\\")[filePath.split("\\").length - 1];
-            filePath = OUTPUT_OPTION.PATH + prefixDir + '/' + OUTPUT_OPTION.PREPEND + fileName
+            if (!filePath.includes(path.join(OUTPUT_OPTION.PATH))) {
+                const fileName = path.basename(filePath)
+                filePath = path.join(OUTPUT_OPTION.PATH, prefixDir, OUTPUT_OPTION.PREPEND + fileName)
+            }
         }
 
         const directory = path.dirname(filePath); // 폴더 경로 추출
@@ -293,14 +329,42 @@ export function process(options) {
         }
     }
 
+
     return {
         findFilesByExtensions,
         jsMinify,
         imgMinify,
         cssMinify,
+        mergeAndMinifyCss,
         otherFile,
         replaceExtensions,
 
-        processBatch
+        processBatch,
     }
 }
+
+const util = (() => {
+    const logger = new Logger(true);
+
+    /**
+     * 파일을 읽고 한개로 합치기
+     * * */
+    async function readAndMerge(files) {
+        let merged = '';
+
+        for (const file of files) {
+            try {
+                const content = await fs.readFile(file, 'utf8');
+                merged += content + '\n'; // 파일 간 줄 구분
+            } catch (error) {
+                logger.error(`Failed to read file: ${file}, ${error.message}`);
+            }
+        }
+
+        return merged;
+    }
+
+    return {
+        readAndMerge
+    }
+})()
